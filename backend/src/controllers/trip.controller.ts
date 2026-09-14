@@ -120,6 +120,20 @@ export class TripController {
     await tripService.deleteTrip(req.params.id, req.user.id);
     sendSuccess(res, null, 'Trip deleted successfully', 200);
   }
+
+  /**
+   * Get real-time pack location and telemetry status for a trip.
+   */
+  async getPackStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!req.user?.id) {
+      throw new AppError('Authentication required', 401);
+    }
+    // Verify caller is a member
+    await tripService.getTripById(req.params.id, req.user.id);
+    const { getTripPackStatus } = require('../socket/location.handler');
+    const packStatus = getTripPackStatus(req.params.id);
+    sendSuccess(res, packStatus, 'Pack status retrieved successfully', 200);
+  }
 }
 
 export const tripController = new TripController();

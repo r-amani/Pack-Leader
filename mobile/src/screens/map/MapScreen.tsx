@@ -11,18 +11,24 @@ import {
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { TravelMode } from '@packleader/shared';
+import { TravelMode, UserRole, IMemberLocationState } from '@packleader/shared';
 import { Card, Button } from '../../components/common';
 import { Colors } from '../../styles/colors';
 import { Theme } from '../../styles/theme';
 import { useMap } from '../../hooks/useMap';
+import { usePackTracking } from '../../hooks/usePackTracking';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
- * Thin Map Screen component.
- * Delegates all mapping, geocoding, and routing logic to the useMap hook.
- * Renders native Google Maps (react-native-maps) with polyline, markers, and controls.
+ * Enhanced Map Screen component with Stage 5 Live Group Tracking & Pack Radar.
+ * - Google Maps routing and place autocomplete.
+ * - Real-time Socket.IO pack member position markers with role indicators.
+ * - Live Pack Radar dashboard (pack spread, formation status, leader-to-sweeper distance).
+ * - Member telemetry inspector card with camera center-on-target.
+ * - Instant pack separation alerts.
  */
 export function MapScreen() {
+  const { user } = useAuth();
   const {
     userLocation,
     userAddress,
@@ -47,6 +53,18 @@ export function MapScreen() {
     loadTripDestination,
     calculateRegion,
   } = useMap();
+
+  const {
+    isTracking,
+    packSummary,
+    packMembers,
+    selectedMember,
+    activeAlert,
+    startTracking,
+    stopTracking,
+    selectMember,
+    dismissAlert,
+  } = usePackTracking();
 
   const [searchQuery, setSearchQuery] = useState('');
   const mapRef = useRef<MapView | null>(null);
@@ -93,6 +111,31 @@ export function MapScreen() {
         },
         600
       );
+    }
+  };
+
+  const handleCenterOnMember = (member: IMemberLocationState) => {
+    if (member.latitude && member.longitude && mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: member.latitude,
+          longitude: member.longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        },
+        600
+      );
+    }
+  };
+
+  const handleToggleTracking = async () => {
+    if (!activeTrip) return;
+    if (isTracking) {
+      stopTracking();
+    } else {
+      const myMembership = activeTrip.members.find((m) => m.userId === user?.id);
+      const userRole = myMembership?.role || UserRole.MEMBER;
+      await startTracking(activeTrip.id, userRole);
     }
   };
 
@@ -174,6 +217,70 @@ export function MapScreen() {
         </View>
       )}
 
+      {/* Real-time Separation Alert Banner */}
+      {activeAlert && (
+        <View style={styles.alertBanner}>
+          <Ionicons name="warning" size={20} color="#FF9800" />
+          <Text style={styles.alertBannerText}>{activeAlert.message}</Text>
+          <TouchableOpacity onPress={dismissAlert} style={{ padding: 4 }}>
+            <Ionicons name="close" size={18} color="#FF9800" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Live Pack Radar Header Strip */}
+      {activeTrip && (
+        <View style={styles.packRadarBar}>
+          <View style={styles.packRadarLeft}>
+            <View
+              style={[
+                styles.packRadarIndicator,
+                isTracking && styles.packRadarIndicatorActive,
+              ]}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.packRadarTitle} numberOfLines={1}>
+                {activeTrip.name}
+              </Text>
+              <Text style={styles.packRadarStats}>
+                {isTracking
+                  ? `${packSummary?.activeMembersCount || packMembers.length} active • Formation: ${
+                      packSummary?.packStatus?.toUpperCase() || 'SEARCHING'
+                    }${
+                      packSummary?.leaderToSweeperDistanceMeters !== undefined
+                        ? ` • L↔S: ${packSummary.leaderToSweeperDistanceMeters}m`
+                        : ''
+                    }`
+                  : 'Pack telemetry standby'}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.trackingToggleBtn,
+              isTracking && styles.trackingToggleBtnActive,
+            ]}
+            onPress={handleToggleTracking}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isTracking ? 'stop-circle' : 'radio-outline'}
+              size={14}
+              color={isTracking ? '#FF5252' : Colors.primary[400]}
+            />
+            <Text
+              style={[
+                styles.trackingToggleText,
+                isTracking && { color: '#FF5252' },
+              ]}
+            >
+              {isTracking ? 'LEAVE PACK' : 'TRANSMIT GPS'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Main Map Container */}
       <View style={styles.mapContainer}>
         <MapView
@@ -189,7 +296,7 @@ export function MapScreen() {
           {userLocation && (
             <Marker
               coordinate={userLocation}
-              title="Your Location"
+              title="Your Location (You)"
               description={userAddress || 'GPS Fix'}
             >
               <View style={styles.userMarkerContainer}>
@@ -211,6 +318,65 @@ export function MapScreen() {
               </View>
             </Marker>
           )}
+
+          {/* Pack Member Real-Time Markers */}
+          {isTracking &&
+            packMembers.map((member) => {
+              if (!member.latitude || !member.longitude) return null;
+              // Don't render redundant marker for current user (handled by userLocation)
+              if (member.userId === user?.id) return null;
+
+              const isMemberLeader = member.role === UserRole.LEADER;
+              const isSweeper = member.role === UserRole.SWEEPER;
+              const isNavigator = member.role === UserRole.NAVIGATOR;
+
+              let badgeColor: string = Colors.primary[500];
+              let roleIcon: any = 'person';
+              if (isMemberLeader) {
+                badgeColor = '#FFD700'; // Gold
+                roleIcon = 'ribbon';
+              } else if (isSweeper) {
+                badgeColor = '#FF9800'; // Orange
+                roleIcon = 'shield';
+              } else if (isNavigator) {
+                badgeColor = '#AB47BC'; // Purple
+                roleIcon = 'compass';
+              }
+
+              return (
+                <Marker
+                  key={member.userId}
+                  coordinate={{
+                    latitude: member.latitude,
+                    longitude: member.longitude,
+                  }}
+                  title={`${member.name} (${member.role})`}
+                  description={
+                    member.isStale
+                      ? 'Stale GPS'
+                      : member.distanceToLeaderMeters !== undefined
+                      ? `${member.distanceToLeaderMeters}m from leader`
+                      : 'Active'
+                  }
+                  onPress={() => selectMember(member)}
+                >
+                  <View
+                    style={[
+                      styles.memberMarkerBadge,
+                      {
+                        backgroundColor: badgeColor,
+                        opacity: member.isStale ? 0.55 : 1.0,
+                      },
+                    ]}
+                  >
+                    <Ionicons name={roleIcon} size={11} color="#000" />
+                    <Text style={styles.memberMarkerName} numberOfLines={1}>
+                      {member.name.split(' ')[0]}
+                    </Text>
+                  </View>
+                </Marker>
+              );
+            })}
 
           {/* Route Polyline Overlay */}
           {route && route.coordinates && route.coordinates.length > 0 && (
@@ -263,6 +429,59 @@ export function MapScreen() {
           </View>
         )}
       </View>
+
+      {/* Selected Pack Member Telemetry Inspector */}
+      {selectedMember && (
+        <View style={styles.memberInspectorCard}>
+          <View style={styles.inspectorHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inspectorName}>{selectedMember.name}</Text>
+              <Text style={styles.inspectorRole}>
+                Role: {(selectedMember.role || UserRole.MEMBER).toUpperCase()}{' '}
+                {selectedMember.isStale ? '• [Stale GPS]' : '• [Live GPS]'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => selectMember(null)}>
+              <Ionicons name="close" size={20} color={Colors.dark.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inspectorMetrics}>
+            {selectedMember.distanceToLeaderMeters !== undefined && (
+              <View style={styles.inspectorMetricItem}>
+                <Text style={styles.inspectorMetricLabel}>DIST TO LEADER</Text>
+                <Text style={styles.inspectorMetricVal}>
+                  {selectedMember.distanceToLeaderMeters} m
+                </Text>
+              </View>
+            )}
+            {selectedMember.batteryLevel !== undefined && (
+              <View style={styles.inspectorMetricItem}>
+                <Text style={styles.inspectorMetricLabel}>BATTERY</Text>
+                <Text style={styles.inspectorMetricVal}>
+                  {selectedMember.batteryLevel}%
+                </Text>
+              </View>
+            )}
+            {selectedMember.speed !== undefined && (
+              <View style={styles.inspectorMetricItem}>
+                <Text style={styles.inspectorMetricLabel}>SPEED</Text>
+                <Text style={styles.inspectorMetricVal}>
+                  {Math.round(selectedMember.speed)} km/h
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Button
+            title="Focus Camera on Member"
+            variant="outline"
+            icon="locate"
+            onPress={() => handleCenterOnMember(selectedMember)}
+            style={{ marginTop: Theme.spacing.xs }}
+          />
+        </View>
+      )}
 
       {/* Bottom Info Panels */}
       <ScrollView
@@ -506,15 +725,92 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     marginTop: 2,
   },
+  alertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 152, 0, 0.15)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 152, 0, 0.4)',
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: 8,
+    zIndex: 9,
+  },
+  alertBannerText: {
+    flex: 1,
+    ...Theme.typography.caption,
+    fontWeight: '700',
+    color: '#FF9800',
+    marginHorizontal: 8,
+  },
+  packRadarBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#121212',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.dark.border,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: 8,
+    zIndex: 8,
+  },
+  packRadarLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  packRadarIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.dark.textMuted,
+    marginRight: 8,
+  },
+  packRadarIndicatorActive: {
+    backgroundColor: '#00E676', // Bright green pulse
+  },
+  packRadarTitle: {
+    ...Theme.typography.bodySmall,
+    fontWeight: '700',
+    color: Colors.dark.textPrimary,
+  },
+  packRadarStats: {
+    ...Theme.typography.caption,
+    fontSize: 11,
+    color: Colors.primary[400],
+    marginTop: 1,
+  },
+  trackingToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 229, 255, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 229, 255, 0.3)',
+    marginLeft: 8,
+  },
+  trackingToggleBtnActive: {
+    backgroundColor: 'rgba(255, 82, 82, 0.15)',
+    borderColor: 'rgba(255, 82, 82, 0.4)',
+  },
+  trackingToggleText: {
+    ...Theme.typography.caption,
+    fontWeight: '700',
+    fontSize: 10,
+    color: Colors.primary[400],
+    marginLeft: 4,
+  },
   mapContainer: {
-    height: 280,
+    height: 310,
     position: 'relative',
     backgroundColor: '#1E1E1E',
   },
   providerBadge: {
     position: 'absolute',
-    top: 12,
-    left: 12,
+    top: 10,
+    left: 10,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.75)',
@@ -574,6 +870,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.white,
   },
+  memberMarkerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: '#000',
+    ...Theme.shadows.sm,
+  },
+  memberMarkerName: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#000',
+    marginLeft: 3,
+  },
   destMarkerContainer: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -594,6 +906,51 @@ const styles = StyleSheet.create({
     color: Colors.primary[400],
     marginLeft: 8,
     fontWeight: '600',
+  },
+  memberInspectorCard: {
+    backgroundColor: Colors.dark.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.dark.border,
+    padding: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.md,
+  },
+  inspectorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inspectorName: {
+    ...Theme.typography.body,
+    fontWeight: '700',
+    color: Colors.dark.textPrimary,
+  },
+  inspectorRole: {
+    ...Theme.typography.caption,
+    color: Colors.primary[400],
+    marginTop: 2,
+  },
+  inspectorMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: Theme.spacing.xs,
+    paddingVertical: 4,
+    backgroundColor: Colors.dark.background,
+    borderRadius: Theme.borderRadius.sm,
+  },
+  inspectorMetricItem: {
+    alignItems: 'center',
+  },
+  inspectorMetricLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.dark.textMuted,
+    letterSpacing: 0.5,
+  },
+  inspectorMetricVal: {
+    ...Theme.typography.bodySmall,
+    fontWeight: '700',
+    color: Colors.white,
+    marginTop: 2,
   },
   bottomSheet: {
     flex: 1,

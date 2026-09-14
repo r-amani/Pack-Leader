@@ -3,6 +3,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { SocketEvents } from '@packleader/shared';
 import { logger } from '../utils/logger';
 import { env } from '../config/environment';
+import { registerLocationHandlers } from './location.handler';
 
 let io: SocketIOServer | null = null;
 
@@ -23,38 +24,8 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
   io.on(SocketEvents.CONNECTION, (socket: Socket) => {
     logger.info(`🔌 Socket connected: ${socket.id}`);
 
-    // Join a trip room
-    socket.on(SocketEvents.TRIP_JOIN, (data: { tripId: string; userId: string }) => {
-      socket.join(`trip:${data.tripId}`);
-      logger.debug(`Socket ${socket.id} joined trip room: trip:${data.tripId}`);
-
-      // Notify other members
-      socket.to(`trip:${data.tripId}`).emit(SocketEvents.TRIP_UPDATED, {
-        type: 'member_joined',
-        userId: data.userId,
-        tripId: data.tripId,
-      });
-    });
-
-    // Leave a trip room
-    socket.on(SocketEvents.TRIP_LEAVE, (data: { tripId: string; userId: string }) => {
-      socket.leave(`trip:${data.tripId}`);
-      logger.debug(`Socket ${socket.id} left trip room: trip:${data.tripId}`);
-
-      socket.to(`trip:${data.tripId}`).emit(SocketEvents.TRIP_UPDATED, {
-        type: 'member_left',
-        userId: data.userId,
-        tripId: data.tripId,
-      });
-    });
-
-    // Location update (Stage 5 will implement the full pipeline)
-    socket.on(SocketEvents.LOCATION_UPDATE, (data) => {
-      if (data.tripId) {
-        // Broadcast to other trip members
-        socket.to(`trip:${data.tripId}`).emit(SocketEvents.LOCATION_UPDATED, data);
-      }
-    });
+    // Register all Stage 5 real-time location & pack tracking handlers
+    registerLocationHandlers(io!, socket);
 
     // Disconnect
     socket.on(SocketEvents.DISCONNECT, (reason) => {
@@ -67,7 +38,7 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
     });
   });
 
-  logger.info('🔌 Socket.IO initialized');
+  logger.info('🔌 Socket.IO initialized with Stage 5 location tracking');
   return io;
 }
 
@@ -89,3 +60,5 @@ export function emitToTrip(tripId: string, event: string, data: unknown): void {
     io.to(`trip:${tripId}`).emit(event, data);
   }
 }
+
+export * from './location.handler';

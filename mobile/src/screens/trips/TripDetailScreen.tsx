@@ -297,6 +297,20 @@ export function TripDetailScreen() {
         />
       )}
 
+      {/* Live Pack Radar & Telemetry Button */}
+      {(trip.status === TripStatus.ACTIVE || trip.status === TripStatus.PLANNED) && (
+        <Button
+          title="Open Live Pack Radar"
+          icon="radio-outline"
+          variant="secondary"
+          onPress={() => {
+            navigation.navigate('Map' as any);
+          }}
+          fullWidth
+          style={styles.actionButton}
+        />
+      )}
+
       {/* Route Card */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Route & Destination</Text>

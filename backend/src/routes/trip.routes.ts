@@ -154,4 +154,15 @@ router.delete(
   asyncHandler(tripController.delete.bind(tripController))
 );
 
+/**
+ * @route   GET /api/trips/:id/pack-status
+ * @desc    Get real-time pack locations and leader-to-sweeper telemetry
+ * @access  Private
+ */
+router.get(
+  '/:id/pack-status',
+  validate([param('id').isMongoId().withMessage('Invalid trip ID')]),
+  asyncHandler(tripController.getPackStatus.bind(tripController))
+);
+
 export default router;

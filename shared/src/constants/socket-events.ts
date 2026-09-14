@@ -17,11 +17,13 @@ export const SocketEvents = {
   TRIP_ENDED: 'trip:ended',
   TRIP_UPDATED: 'trip:updated',
 
-  // Location tracking
+  // Location tracking & Pack formation
   LOCATION_UPDATE: 'location:update',
   LOCATION_UPDATED: 'location:updated',
   LOCATION_BATCH_UPDATE: 'location:batch-updated',
   LOCATION_STALE: 'location:stale',
+  PACK_STATE: 'pack:state',
+  PACK_ALERT: 'pack:alert',
 
   // ETA and route progress
   ETA_UPDATED: 'eta:updated',
