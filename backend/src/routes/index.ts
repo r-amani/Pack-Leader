@@ -4,6 +4,7 @@ import healthRouter from './health';
 import authRouter from './auth.routes';
 import tripRouter from './trip.routes';
 import userRouter from './user.routes';
+import { smartPathRoutes } from './smartpath.routes';
 
 const router = Router();
 
@@ -19,8 +20,8 @@ router.use('/users', userRouter);
 // Trips & Coordination (Stage 3)
 router.use('/trips', tripRouter);
 
-// Future route groups (Stage 5+)
-// router.use('/checkins', checkinsRouter);
-// router.use('/journal', journalRouter);
+// SmartPath Route Recommendation Engine (Stage 6)
+router.use('/routes/smartpath', smartPathRoutes);
 
 export default router;
+

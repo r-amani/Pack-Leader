@@ -6,3 +6,11 @@ export type { ISOSAlert, ICheckIn } from './safety';
 export { SOSStatus, CheckInStatus } from './safety';
 export type { IJournalEntry, ICreateJournalEntry } from './journal';
 export type { IApiResponse, IPaginatedResponse } from './api';
+export type {
+  ICoordinatesPair,
+  ISmartPathPreferences,
+  ISmartPathStop,
+  ISmartPathRecommendation,
+} from './smartpath';
+export { RoutePreference } from './smartpath';
+

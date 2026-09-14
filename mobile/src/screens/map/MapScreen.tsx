@@ -18,6 +18,9 @@ import { Theme } from '../../styles/theme';
 import { useMap } from '../../hooks/useMap';
 import { usePackTracking } from '../../hooks/usePackTracking';
 import { useAuth } from '../../contexts/AuthContext';
+import { SmartPathModal } from '../../components/map/SmartPathModal';
+import { ISmartPathRecommendation } from '@packleader/shared';
+
 
 /**
  * Enhanced Map Screen component with Stage 5 Live Group Tracking & Pack Radar.
@@ -67,6 +70,7 @@ export function MapScreen() {
   } = usePackTracking();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [smartPathVisible, setSmartPathVisible] = useState(false);
   const mapRef = useRef<MapView | null>(null);
 
   // Animate camera when region changes (e.g. when route or destination updates)
@@ -413,6 +417,14 @@ export function MapScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.mapButton, styles.smartPathMapButton]}
+            onPress={() => setSmartPathVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="sparkles" size={18} color={Colors.accent[500]} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.mapButton, styles.recenterMapButton]}
             onPress={handleRecenter}
             activeOpacity={0.8}
@@ -661,6 +673,21 @@ export function MapScreen() {
           </Card>
         )}
       </ScrollView>
+
+      {/* SmartPath Route Optimizer Modal (Stage 6) */}
+      <SmartPathModal
+        visible={smartPathVisible}
+        onClose={() => setSmartPathVisible(false)}
+        origin={userLocation}
+        destination={destinationCoordinates}
+        onSelectRoute={(rec: ISmartPathRecommendation) => {
+          if (rec.waypoints && rec.waypoints.length > 0) {
+            const last = rec.waypoints[rec.waypoints.length - 1];
+            selectDestination(last, rec.name);
+            calculateRoute(last);
+          }
+        }}
+      />
     </View>
   );
 }
@@ -844,6 +871,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.dark.border,
     ...Theme.shadows.md,
+  },
+  smartPathMapButton: {
+    borderColor: Colors.accent[500],
+    backgroundColor: 'rgba(255, 110, 64, 0.1)',
   },
   recenterMapButton: {
     marginTop: 4,
