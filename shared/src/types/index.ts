@@ -7,7 +7,7 @@ export type {
   IBatchSyncPayload,
   IBatchSyncResponse,
 } from './location';
-export type { IExpense, IExpenseParticipant, ICreateExpense, IMemberBalance, ISettlement } from './expense';
+export type { IExpense, IExpenseParticipant, ICreateExpense, IMemberBalance, ISettlement, IExpenseSummary } from './expense';
 export type { ISOSAlert, ICheckIn } from './safety';
 export { SOSStatus, CheckInStatus } from './safety';
 export type { IJournalEntry, ICreateJournalEntry } from './journal';

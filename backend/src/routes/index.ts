@@ -6,6 +6,7 @@ import tripRouter from './trip.routes';
 import userRouter from './user.routes';
 import { smartPathRoutes } from './smartpath.routes';
 import { safetyRoutes } from './safety.routes';
+import { expenseRoutes } from './expense.routes';
 
 const router = Router();
 
@@ -26,6 +27,9 @@ router.use('/routes/smartpath', smartPathRoutes);
 
 // Safety & Emergency SOS (Stage 9)
 router.use('/safety', safetyRoutes);
+
+// Expenses & Pack Ledger (Stage 10)
+router.use('/expenses', expenseRoutes);
 
 export default router;
 

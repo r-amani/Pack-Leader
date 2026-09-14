@@ -62,3 +62,15 @@ export interface ISettlement {
   toName: string;
   amount: number;
 }
+
+/**
+ * Full trip financial ledger summary including debt simplification.
+ */
+export interface IExpenseSummary {
+  tripId: string;
+  totalTripCost: number;
+  currency: string;
+  categoryBreakdown: Record<string, number>;
+  memberBalances: IMemberBalance[];
+  settlements: ISettlement[];
+}
