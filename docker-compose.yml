@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Pack Leader API Server & Real-time WebSockets
+  # ============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: packleader-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/packleader
+      - JWT_SECRET=${JWT_SECRET:-packleader_production_jwt_secret_change_me}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-packleader_production_refresh_secret_change_me}
+      - JWT_EXPIRES_IN=7d
+      - CORS_ORIGIN=*
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      - MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN:-}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - packleader-net
+
+  # ============================================================================
+  # MongoDB Database
+  # ============================================================================
+  mongo:
+    image: mongo:7.0
+    container_name: packleader-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - packleader-net
+
+  # ============================================================================
+  # Redis (Real-time Socket.IO Adapter & Fast Cache)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: packleader-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - packleader-net
+
+volumes:
+  mongo_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  packleader-net:
+    driver: bridge
