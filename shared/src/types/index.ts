@@ -19,4 +19,7 @@ export type {
   ISmartPathRecommendation,
 } from './smartpath';
 export { RoutePreference } from './smartpath';
+export type { IQuickAlert } from './quick-alert';
+export { QuickAlertType } from './quick-alert';
+
 

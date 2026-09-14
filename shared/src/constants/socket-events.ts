@@ -24,6 +24,8 @@ export const SocketEvents = {
   LOCATION_STALE: 'location:stale',
   PACK_STATE: 'pack:state',
   PACK_ALERT: 'pack:alert',
+  QUICK_ALERT_SEND: 'quick_alert:send',
+  QUICK_ALERT_BROADCAST: 'quick_alert:broadcast',
 
   // ETA and route progress
   ETA_UPDATED: 'eta:updated',

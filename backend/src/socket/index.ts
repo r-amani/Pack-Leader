@@ -4,6 +4,7 @@ import { SocketEvents } from '@packleader/shared';
 import { logger } from '../utils/logger';
 import { env } from '../config/environment';
 import { registerLocationHandlers } from './location.handler';
+import { registerAlertHandlers } from './alert.handler';
 
 let io: SocketIOServer | null = null;
 
@@ -26,6 +27,9 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
 
     // Register all Stage 5 real-time location & pack tracking handlers
     registerLocationHandlers(io!, socket);
+
+    // Register Stage 8 real-time convoy quick alerts
+    registerAlertHandlers(io!, socket);
 
     // Disconnect
     socket.on(SocketEvents.DISCONNECT, (reason) => {
