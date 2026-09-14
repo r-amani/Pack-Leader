@@ -24,6 +24,22 @@ export class UserController {
   }
 
   /**
+   * Get current authenticated user profile.
+   */
+  async getMe(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!req.user?.id) {
+      throw new AppError('Authentication required', 401);
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    sendSuccess(res, user.toUserResponse());
+  }
+
+  /**
    * Update authenticated user's profile (name, travel mode, emergency contacts).
    */
   async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {

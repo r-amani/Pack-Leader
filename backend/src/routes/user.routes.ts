@@ -28,6 +28,13 @@ const updateProfileValidation = [
 ];
 
 /**
+ * @route   GET /api/users/me
+ * @desc    Get current authenticated user profile
+ * @access  Private
+ */
+router.get('/me', asyncHandler(userController.getMe.bind(userController)));
+
+/**
  * @route   PUT /api/users/me
  * @desc    Update current authenticated user's profile
  * @access  Private
