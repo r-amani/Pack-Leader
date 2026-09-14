@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Pack Leader",
+    "slug": "pack-leader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.packleader.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Pack Leader needs your location to show your position on the map and share it with your trip group.",
+        "NSLocationAlwaysUsageDescription": "Pack Leader needs background location access to keep your trip group updated on your position while the app is in the background."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F1419",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.packleader.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

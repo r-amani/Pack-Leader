@@ -1,0 +1,25 @@
+{
+  "name": "packleader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pack Leader — Trip planning, real-time group tracking, navigation, safety, and expense management platform",
+  "workspaces": [
+    "shared",
+    "backend",
+    "mobile"
+  ],
+  "scripts": {
+    "backend:dev": "npm run dev --workspace=backend",
+    "backend:build": "npm run build --workspace=backend",
+    "backend:test": "npm test --workspace=backend",
+    "mobile:start": "npm start --workspace=mobile",
+    "mobile:android": "npm run android --workspace=mobile",
+    "mobile:ios": "npm run ios --workspace=mobile",
+    "shared:build": "npm run build --workspace=shared",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
