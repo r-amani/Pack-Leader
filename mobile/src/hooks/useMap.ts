@@ -177,7 +177,11 @@ export function useMap(): UseMapReturn {
       const destName = dest.name || dest.address || 'Expedition Destination';
       setDestinationName(destName);
 
-      if (dest.coordinates && dest.coordinates.latitude && dest.coordinates.longitude) {
+      if (
+        dest.coordinates &&
+        dest.coordinates.latitude !== 0 &&
+        dest.coordinates.longitude !== 0
+      ) {
         const coords: ILocationCoordinates = {
           latitude: dest.coordinates.latitude,
           longitude: dest.coordinates.longitude,
@@ -197,10 +201,12 @@ export function useMap(): UseMapReturn {
             setDestinationCoordinates(first.coordinates);
             await calculateRoute(first.coordinates, trip.travelMode || activeTravelMode);
           } else {
-            setErrorMessage(`Could not resolve coordinates for ${query}`);
+            setErrorMessage(
+              `Could not resolve coordinates for "${query}". Use the search bar above to pick a precise location.`
+            );
           }
         } catch (err: any) {
-          setErrorMessage(err.message);
+          setErrorMessage(err.message || 'Geocoding service error');
         }
       }
     },

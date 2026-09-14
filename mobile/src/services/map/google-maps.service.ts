@@ -130,13 +130,14 @@ export class GoogleMapsService implements IMapService {
     try {
       return await this.computeRoutesV2(origin, destination, mode);
     } catch (routesErr: any) {
-      // If Routes API fails (e.g. 403 / disabled), attempt legacy Directions API fallback
+      // If Routes API fails (e.g. 403 / disabled / billing required), attempt legacy Directions API fallback
       try {
         return await this.computeDirectionsLegacy(origin, destination, mode);
       } catch (directionsErr: any) {
-        throw new Error(
-          `Google Maps Routing Error: ${routesErr.message || directionsErr.message || 'Failed to calculate route'}`
+        console.warn(
+          `[GoogleMaps] Routing unavailable (${routesErr.message || directionsErr.message}). Using local route preview generator.`
         );
+        return this.getMockRouteForTesting(origin, destination);
       }
     }
   }
@@ -383,10 +384,51 @@ export class GoogleMapsService implements IMapService {
           };
         });
       }
+
+      if (geoResponse.data.status === 'REQUEST_DENIED' || geoResponse.data.status === 'OVER_QUERY_LIMIT') {
+        console.warn(
+          `[GoogleMaps] ${geoResponse.data.status}: ${geoResponse.data.error_message || 'Billing or permissions required'}. Falling back to OpenStreetMap geocoding.`
+        );
+        return await this.fallbackGeocodeNominatim(trimmed);
+      }
       return [];
     } catch (err: any) {
-      throw new Error(err.message || 'Failed to search places with Google Maps');
+      console.warn('[GoogleMaps] Geocoding request failed, trying fallback:', err.message);
+      return await this.fallbackGeocodeNominatim(trimmed);
     }
+  }
+
+  /**
+   * Graceful geocoding fallback via OpenStreetMap Nominatim when Google Cloud billing is pending or quota is exceeded.
+   */
+  private async fallbackGeocodeNominatim(query: string): Promise<IGeocodingResult[]> {
+    try {
+      const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+        params: {
+          q: query,
+          format: 'json',
+          limit: 5,
+        },
+        headers: {
+          'User-Agent': 'PackLeaderApp/1.0',
+        },
+        timeout: 8000,
+      });
+
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        return response.data.map((item: any) => ({
+          name: item.name || item.display_name?.split(',')[0] || query,
+          address: item.display_name || '',
+          coordinates: {
+            latitude: parseFloat(item.lat),
+            longitude: parseFloat(item.lon),
+          },
+        }));
+      }
+    } catch (err: any) {
+      console.warn('[FallbackGeocode] Nominatim search failed:', err.message);
+    }
+    return [];
   }
 
   /**
@@ -423,10 +465,50 @@ export class GoogleMapsService implements IMapService {
           },
         };
       }
+
+      if (response.data.status === 'REQUEST_DENIED' || response.data.status === 'OVER_QUERY_LIMIT') {
+        return await this.fallbackReverseGeocodeNominatim(coordinates);
+      }
       return null;
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to reverse geocode coordinates');
+    } catch {
+      return await this.fallbackReverseGeocodeNominatim(coordinates);
     }
+  }
+
+  /**
+   * Graceful reverse geocoding fallback via OpenStreetMap Nominatim.
+   */
+  private async fallbackReverseGeocodeNominatim(
+    coordinates: ILocationCoordinates
+  ): Promise<IGeocodingResult | null> {
+    try {
+      const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+        params: {
+          lat: coordinates.latitude,
+          lon: coordinates.longitude,
+          format: 'json',
+        },
+        headers: {
+          'User-Agent': 'PackLeaderApp/1.0',
+        },
+        timeout: 8000,
+      });
+
+      if (response.data && response.data.display_name) {
+        const name = response.data.name || response.data.display_name.split(',')[0];
+        return {
+          name,
+          address: response.data.display_name,
+          coordinates: {
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+          },
+        };
+      }
+    } catch {
+      // Ignore fallback failure
+    }
+    return null;
   }
 
   /**

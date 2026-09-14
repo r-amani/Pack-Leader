@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, UrlTile } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { TravelMode, UserRole, IMemberLocationState } from '@packleader/shared';
 import { Card, Button } from '../../components/common';
@@ -296,6 +296,13 @@ export function MapScreen() {
           showsCompass
           showsScale
         >
+          {/* Tile Layer: OpenStreetMap tiles fallback ensuring map tiles render on all devices */}
+          <UrlTile
+            urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maximumZ={19}
+            flipY={false}
+            zIndex={-1}
+          />
           {/* User Location Marker */}
           {userLocation && (
             <Marker

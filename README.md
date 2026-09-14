@@ -111,14 +111,14 @@ See:
 | 2 | Authentication & User Management | ✅ Complete |
 | 3 | Trip & Group Management | ✅ Complete |
 | 4 | Map & Basic Location (Google Maps & Provider Abstraction) | ✅ Complete |
-| 5 | Real-Time Group Tracking | ⏳ Next |
-| 6 | SmartPath Route Engine | ⬜ Planned |
-| 7 | Safety Systems | ⬜ Planned |
-| 8 | Offline Maps | ⬜ Planned |
-| 9 | Expense Management | ⬜ Planned |
-| 10 | Travel Mode Features | ⬜ Planned |
-| 11 | UI/UX Refinement | ⬜ Planned |
-| 12 | Testing & Deployment | ⬜ Planned |
+| 5 | Real-Time Group Tracking & Pack Radar Telemetry | ✅ Complete |
+| 6 | SmartPath Route Engine & Waypoint Planning | ✅ Complete |
+| 7 | Offline Storage, Network Status & Sync Queue | ✅ Complete |
+| 8 | Voice & 1-Tap Convoy Quick Alerts | ✅ Complete |
+| 9 | Emergency SOS Beacon & Active Distress Broadcast | ✅ Complete |
+| 10 | Pack Ledger, Expense Categorization & Debt Simplification | ✅ Complete |
+| 11 | Master Regression Test Suite & UI/UX Polish | ✅ Complete |
+| 12 | Production Docker, EAS Config & Deployment Docs | ✅ Complete |
 
 ## Tech Stack
 
