@@ -134,6 +134,62 @@ export class TripController {
     const packStatus = getTripPackStatus(req.params.id);
     sendSuccess(res, packStatus, 'Pack status retrieved successfully', 200);
   }
+
+  /**
+   * Bulk sync offline queued telemetry snapshots and status updates.
+   */
+  async syncOfflineTelemetry(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!req.user?.id) {
+      throw new AppError('Authentication required', 401);
+    }
+    const { id } = req.params;
+    const { snapshots } = req.body;
+
+    if (!snapshots || !Array.isArray(snapshots)) {
+      throw new AppError('Snapshots array is required for batch sync', 400);
+    }
+
+    if (snapshots.length > 0) {
+      const { tripLocationStores } = require('../socket/location.handler');
+      if (tripLocationStores) {
+        if (!tripLocationStores.has(id)) {
+          tripLocationStores.set(id, new Map());
+        }
+        const store = tripLocationStores.get(id);
+        if (store && req.user.id) {
+          const latest = snapshots[snapshots.length - 1];
+          const existing = store.get(req.user.id);
+          if (existing) {
+            existing.latitude = latest.latitude;
+            existing.longitude = latest.longitude;
+            existing.lastUpdated = latest.timestamp || new Date().toISOString();
+            existing.isStale = false;
+          } else {
+            store.set(req.user.id, {
+              userId: req.user.id,
+              name: req.user.name || 'Rider',
+              latitude: latest.latitude,
+              longitude: latest.longitude,
+              isStale: false,
+              isConnected: false,
+              lastUpdated: latest.timestamp || new Date().toISOString(),
+              lastSeenTimestamp: Date.now(),
+            });
+          }
+        }
+      }
+    }
+
+    sendSuccess(
+      res,
+      {
+        syncedCount: snapshots.length,
+        lastSyncedTimestamp: new Date().toISOString(),
+      },
+      'Offline telemetry synchronized successfully',
+      200
+    );
+  }
 }
 
 export const tripController = new TripController();

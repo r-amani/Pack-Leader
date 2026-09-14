@@ -1,6 +1,12 @@
 export type { IUser, IEmergencyContact, IUserRegistration, IUserLogin, IAuthResponse } from './user';
 export type { ITrip, ITripMember, ICoordinates, ILocation, ICreateTrip } from './trip';
-export type { ILocationSnapshot, IMemberLocationState, IPackStatusSummary } from './location';
+export type {
+  ILocationSnapshot,
+  IMemberLocationState,
+  IPackStatusSummary,
+  IBatchSyncPayload,
+  IBatchSyncResponse,
+} from './location';
 export type { IExpense, IExpenseParticipant, ICreateExpense, IMemberBalance, ISettlement } from './expense';
 export type { ISOSAlert, ICheckIn } from './safety';
 export { SOSStatus, CheckInStatus } from './safety';

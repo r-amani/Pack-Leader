@@ -14,7 +14,7 @@ import { User } from '../models/User';
  * In-memory store of real-time member locations grouped by tripId:
  * tripId -> Map<userId, IMemberLocationState>
  */
-const tripLocationStores = new Map<string, Map<string, IMemberLocationState>>();
+export const tripLocationStores = new Map<string, Map<string, IMemberLocationState>>();
 
 /**
  * Mapping of socketId -> { tripId, userId } for disconnect tracking.

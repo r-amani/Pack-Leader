@@ -59,3 +59,22 @@ export interface IPackStatusSummary {
   packStatus: 'tight' | 'stretched' | 'scattered' | 'unknown';
   members: IMemberLocationState[];
 }
+
+/**
+ * Payload for bulk synchronization of offline queued location snapshots.
+ */
+export interface IBatchSyncPayload {
+  tripId: string;
+  userId: string;
+  snapshots: ILocationSnapshot[];
+  timestamp: string;
+}
+
+/**
+ * Response from batch synchronization.
+ */
+export interface IBatchSyncResponse {
+  syncedCount: number;
+  lastSyncedTimestamp: string;
+}
+

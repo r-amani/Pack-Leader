@@ -165,4 +165,15 @@ router.get(
   asyncHandler(tripController.getPackStatus.bind(tripController))
 );
 
+/**
+ * @route   POST /api/trips/:id/sync
+ * @desc    Batch sync offline queued telemetry snapshots and updates
+ * @access  Private
+ */
+router.post(
+  '/:id/sync',
+  validate([param('id').isMongoId().withMessage('Invalid trip ID')]),
+  asyncHandler(tripController.syncOfflineTelemetry.bind(tripController))
+);
+
 export default router;
