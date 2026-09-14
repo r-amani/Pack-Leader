@@ -5,6 +5,7 @@ import authRouter from './auth.routes';
 import tripRouter from './trip.routes';
 import userRouter from './user.routes';
 import { smartPathRoutes } from './smartpath.routes';
+import { safetyRoutes } from './safety.routes';
 
 const router = Router();
 
@@ -23,5 +24,9 @@ router.use('/trips', tripRouter);
 // SmartPath Route Recommendation Engine (Stage 6)
 router.use('/routes/smartpath', smartPathRoutes);
 
+// Safety & Emergency SOS (Stage 9)
+router.use('/safety', safetyRoutes);
+
 export default router;
+
 
